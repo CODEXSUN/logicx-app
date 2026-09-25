@@ -1,4 +1,6 @@
-const csrfToken = window.csrf_token || ''
+function getCsrfToken() {
+  return window.csrf_token || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+}
 
 async function request(url, options = {}) {
   const response = await fetch(url, {
@@ -6,7 +8,7 @@ async function request(url, options = {}) {
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      'X-Frappe-CSRF-Token': csrfToken,
+      'X-Frappe-CSRF-Token': getCsrfToken(),
       ...options.headers,
     },
     ...options,
@@ -81,7 +83,7 @@ export const productApi = {
       method: 'POST',
       body: form,
       credentials: 'same-origin',
-      headers: { 'X-Frappe-CSRF-Token': csrfToken },
+      headers: { 'X-Frappe-CSRF-Token': getCsrfToken() },
     })
     const payload = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(payload.exception || payload.message || `Upload failed (${response.status})`)

@@ -16,7 +16,8 @@ def get_context():
 	if not check_app_permission():
 		frappe.throw(_("You do not have permission to access LogicX"), frappe.PermissionError)
 
-	return {"boot": get_boot()}
+	boot = get_boot()
+	return {"boot": boot, "csrf_token": boot.csrf_token}
 
 
 def get_boot():

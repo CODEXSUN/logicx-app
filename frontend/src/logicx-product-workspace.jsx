@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { BoxesIcon, LayoutDashboardIcon, PackageIcon, PlusIcon } from 'lucide-react'
+import { BoxesIcon, LayoutDashboardIcon, PackageIcon, PlusIcon, SaveIcon } from 'lucide-react'
 import { MainWorkspace } from '@codexsun/ui/layouts/main-workspace'
 import { MasterForm, MasterListDesk } from '@codexsun/ui/blocks/master-list'
+import { Button } from '@codexsun/ui/components/button'
 import { productApi, sessionApi } from './api'
 
 const emptyProduct = {
@@ -224,6 +225,7 @@ function ProductEditor({ mode }) {
           else setValues((current) => ({ ...current, [field]: value }))
         }}
         formId="logicx-product-form"
+        hideSubmitButton={isEdit}
         submitLabel={isEdit ? 'Update product' : 'Create product'}
         title={isEdit ? 'Edit product' : isLink ? 'Link existing item' : 'New product'}
         values={values}
@@ -255,6 +257,8 @@ export default function LogicXProductWorkspace() {
     },
   ]
 
+  const isEditPage = /^\/products\/[^/]+\/edit$/.test(location.pathname)
+
   return (
     <MainWorkspace
       applicationIcon={BoxesIcon}
@@ -263,12 +267,19 @@ export default function LogicXProductWorkspace() {
       applicationName="LogicX"
       defaultFeatures={{ primaryActivityRail: false, secondaryUtilityRail: false }}
       apps={[{ active: true, href: '/logicx-app', icon: BoxesIcon, label: 'LogicX' }]}
+      applicationHeaderEnd={isEditPage ? (
+        <Button form="logicx-product-form" size="sm" type="submit">
+          <SaveIcon />
+          Save
+        </Button>
+      ) : null}
       contentClassName="h-full min-h-full overflow-visible"
       navigation={navigation}
       notificationCount={0}
       onSearchChange={() => {}}
       primaryAction={{ icon: PlusIcon, label: 'Add product', onSelect: () => navigate('/products/new') }}
       showTopologyTools={false}
+      showApplicationHeader={isEditPage}
       statusLabel="Connected"
       user={{
         email: user.email,
