@@ -2,11 +2,26 @@
 
 ## Version State
 
-Current version: 0.1.1
+Current version: 0.1.2
 
-Release tag: v-0.1.1
+Release tag: v-0.1.2
 
-Changelog label: v 0.1.1
+Changelog label: v 0.1.2
+
+## v-0.1.2
+
+### [v 0.1.2] 2026-09-25 - Product header actions
+
+#### Database Changes
+
+- Database update: No.
+
+#### App Codebase Changes
+
+- Bumped the LogicX version to 0.1.2.
+- Replaced the LogicX workspace header identity with product page titles.
+- Added product create and edit actions to the application header.
+- Kept the Master List v3 product workspace at full width and height.
 
 ## v-0.1.1
 

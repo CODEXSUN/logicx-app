@@ -225,7 +225,7 @@ function ProductEditor({ mode }) {
           else setValues((current) => ({ ...current, [field]: value }))
         }}
         formId="logicx-product-form"
-        hideSubmitButton={isEdit}
+        hideSubmitButton={isEdit || isLink}
         submitLabel={isEdit ? 'Update product' : 'Create product'}
         title={isEdit ? 'Edit product' : isLink ? 'Link existing item' : 'New product'}
         values={values}
@@ -257,7 +257,32 @@ export default function LogicXProductWorkspace() {
     },
   ]
 
+  const isProductRoute = location.pathname.startsWith('/products')
   const isEditPage = /^\/products\/[^/]+\/edit$/.test(location.pathname)
+  const isNewPage = location.pathname === '/products/new'
+  const isLinkPage = location.pathname === '/products/link'
+  const headerTitle = isEditPage ? 'Edit product' : isNewPage ? 'New product' : isLinkPage ? 'Link product' : 'Products'
+  const headerAction = isEditPage ? (
+    <Button form="logicx-product-form" size="sm" type="submit">
+      <SaveIcon />
+      Save
+    </Button>
+  ) : isNewPage ? (
+    <Button form="logicx-product-form" size="sm" type="submit">
+      <PlusIcon />
+      Create product
+    </Button>
+  ) : isLinkPage ? (
+    <Button form="logicx-product-form" size="sm" type="submit">
+      <PlusIcon />
+      Link product
+    </Button>
+  ) : (
+    <Button onClick={() => navigate('/products/new')} size="sm" type="button">
+      <PlusIcon />
+      Add product
+    </Button>
+  )
 
   return (
     <MainWorkspace
@@ -267,19 +292,17 @@ export default function LogicXProductWorkspace() {
       applicationName="LogicX"
       defaultFeatures={{ primaryActivityRail: false, secondaryUtilityRail: false }}
       apps={[{ active: true, href: '/logicx-app', icon: BoxesIcon, label: 'LogicX' }]}
-      applicationHeaderEnd={isEditPage ? (
-        <Button form="logicx-product-form" size="sm" type="submit">
-          <SaveIcon />
-          Save
-        </Button>
-      ) : null}
+      applicationHeaderEnd={headerAction}
+      applicationHeaderTitle={headerTitle}
       contentClassName="h-full min-h-full overflow-visible"
       navigation={navigation}
       notificationCount={0}
       onSearchChange={() => {}}
       primaryAction={{ icon: PlusIcon, label: 'Add product', onSelect: () => navigate('/products/new') }}
+      showApplicationIdentity={false}
       showTopologyTools={false}
-      showApplicationHeader={isEditPage}
+      showApplicationHeader={isProductRoute}
+      showWorkspaceTitleInHeader={false}
       statusLabel="Connected"
       user={{
         email: user.email,
