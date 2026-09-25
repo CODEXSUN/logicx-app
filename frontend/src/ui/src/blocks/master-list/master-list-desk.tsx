@@ -149,7 +149,7 @@ export function MasterListDesk<TRecord extends MasterListDeskRecord>({
   }
 
   return (
-    <section className="w-full bg-background text-sm">
+    <section className="flex min-h-full w-full flex-1 flex-col bg-background text-sm">
       <DeskRegion
         as="header"
         className="flex min-h-12 flex-wrap items-center justify-between gap-3 border-b px-3 py-2"
@@ -189,7 +189,7 @@ export function MasterListDesk<TRecord extends MasterListDeskRecord>({
         </DeskRegion>
       </DeskRegion>
 
-      <div className="flex flex-col gap-3 p-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
         {filterPlacement === "top" ? (
           <DeskRegion
             className="flex flex-wrap items-start justify-between gap-3"
