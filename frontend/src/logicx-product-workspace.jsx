@@ -224,6 +224,8 @@ function ProductEditor({ mode }) {
           if (field === 'item') updateItem(value)
           else setValues((current) => ({ ...current, [field]: value }))
         }}
+        formId="logicx-product-form"
+        hideSubmitButton
         submitLabel={isEdit ? 'Update product' : 'Create product'}
         title={isEdit ? 'Edit product' : isLink ? 'Link existing item' : 'New product'}
         values={values}
@@ -301,5 +303,3 @@ export default function LogicXProductWorkspace() {
     </MainWorkspace>
   )
 }
-        formId="logicx-product-form"
-        hideSubmitButton
