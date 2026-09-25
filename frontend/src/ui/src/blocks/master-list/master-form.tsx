@@ -83,7 +83,7 @@ export function MasterForm({
   variant = 'page',
 }: MasterFormProps) {
   const generatedFormId = useId();
-  const formId = providedFormId ?? generatedFormId;
+  const resolvedFormId = providedFormId ?? generatedFormId;
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -107,7 +107,8 @@ export function MasterForm({
   return (
     <form
       className={cn('w-full space-y-6', variant === 'panel' && 'rounded-lg border bg-card p-6')}
-      id={formId}
+      data-form-id={resolvedFormId}
+      id={resolvedFormId}
       noValidate
       onSubmit={handleSubmit}
     >
@@ -117,7 +118,7 @@ export function MasterForm({
       </header>
       <div className="grid gap-5 sm:grid-cols-2">
         {fields.map((field) => {
-          const id = `${formId}-${field.id}`;
+          const id = `${resolvedFormId}-${field.id}`;
           const error = errors[field.id];
           return (
             <Field
