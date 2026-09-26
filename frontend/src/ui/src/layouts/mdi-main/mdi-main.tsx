@@ -103,7 +103,11 @@ export function MainWorkspace({
   const applicationApps = apps ?? createDefaultMdiApps(applicationId);
 
   return (
-    <ThemeProvider>
+    <ThemeProvider
+      defaultTheme="light"
+      storageKey={`${applicationId}.theme`}
+      colorStorageKey={`${applicationId}.color-theme`}
+    >
       <Toaster>
         <MdiTopologyProvider value={topology}>
           <SidebarProvider

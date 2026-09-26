@@ -9,7 +9,10 @@ import subprocess
 import time
 
 
-BENCH_DIR = pathlib.Path("/home/devops/persistent/frappe-bench")
+# The host bind mount defaults to /home/logicx/frappe-bench.  Within the
+# container, Compose exposes its parent directory at this stable path.
+PERSISTENT_DIR = pathlib.Path(os.getenv("FRAPPE_PERSISTENT_DIR", "/home/devops/persistent"))
+BENCH_DIR = PERSISTENT_DIR / "frappe-bench"
 APP_SOURCE = pathlib.Path("/workspace/logicx-app")
 SITE_NAME = os.getenv("SITE_NAME", "logicx.localhost")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")

@@ -23,6 +23,8 @@ ADMIN_PASSWORD=admin
 DB_ROOT_PASSWORD=logicx_db_root
 FRAPPE_BRANCH=version-16
 ERPNEXT_BRANCH=version-16
+FRAPPE_BENCH_HOST_PATH=/home/logicx/frappe-bench
+HOST_GID=1000
 ```
 
 Keep real passwords out of Git.
@@ -99,7 +101,8 @@ docker compose -f .container/compose.yml stop
 docker compose -f .container/compose.yml start
 ```
 
-Named volumes preserve the Bench and MariaDB data.
+The host directory `/home/logicx/frappe-bench` preserves the Bench and can be
+opened directly in code-server. MariaDB remains in its named Docker volume.
 
 ## 11. Remove the local deployment
 
@@ -107,10 +110,11 @@ Named volumes preserve the Bench and MariaDB data.
 docker compose -f .container/compose.yml down
 ```
 
-This keeps data. To also delete the local database and Bench volumes, explicitly run:
+This keeps data. To also delete the local database volume, explicitly run:
 
 ```powershell
 docker compose -f .container/compose.yml down --volumes
 ```
 
-The `--volumes` command permanently removes this local deployment data.
+The `--volumes` command permanently removes the MariaDB deployment data. It
+does not remove the host Bench directory.
