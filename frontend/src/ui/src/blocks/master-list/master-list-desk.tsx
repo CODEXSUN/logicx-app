@@ -15,6 +15,16 @@ import {
 } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
 import { Checkbox } from "@codexsun/ui/components/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@codexsun/ui/components/alert-dialog";
 import { Input } from "@codexsun/ui/components/input";
 import { DataTableRowActions } from "@codexsun/ui/blocks/table";
 import { TopologyRegion, type InterfaceTopologyController } from "@codexsun/ui/features/interface-topology";
@@ -120,6 +130,7 @@ export function MasterListDesk<TRecord extends MasterListDeskRecord>({
 }: MasterListDeskProps<TRecord>) {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [forceDropRecord, setForceDropRecord] = useState<TRecord | null>(null);
   const [pageSize, setPageSize] = useState(20);
   const visibleRecords = useMemo(
     () =>
@@ -320,10 +331,10 @@ export function MasterListDesk<TRecord extends MasterListDeskRecord>({
                         onSelect: () => onSuspend?.(record),
                       },
                       {
-                        id: "delete",
-                        label: "Delete",
+                        id: "force-drop",
+                        label: "Force drop",
                         icon: <Trash2 />,
-                        onSelect: () => onDelete?.(record),
+                        onSelect: () => setForceDropRecord(record),
                         separatorBefore: true,
                         tone: "destructive",
                       },
@@ -341,7 +352,7 @@ export function MasterListDesk<TRecord extends MasterListDeskRecord>({
 
         <DeskRegion
           as="footer"
-          className="flex items-center justify-between gap-3"
+          className="mt-auto flex items-center justify-between gap-3 border-t pt-3"
           id={topologyIds?.pagination}
           topology={topology}
         >
@@ -364,6 +375,34 @@ export function MasterListDesk<TRecord extends MasterListDeskRecord>({
             </Button>
           </DeskRegion>
         </DeskRegion>
+
+        <AlertDialog
+          onOpenChange={(open) => {
+            if (!open) setForceDropRecord(null);
+          }}
+          open={Boolean(forceDropRecord)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Force drop this record?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This permanently removes {forceDropRecord?.id ?? "the selected record"}. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (forceDropRecord) onDelete?.(forceDropRecord);
+                  setForceDropRecord(null);
+                }}
+                variant="destructive"
+              >
+                Force drop
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </section>
   );

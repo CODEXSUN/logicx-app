@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { BoxesIcon, LayoutDashboardIcon, PackageIcon, PlusIcon, SaveIcon } from 'lucide-react'
+import { BoxesIcon, LayoutDashboardIcon, PackageIcon, PlusIcon } from 'lucide-react'
 import { MainWorkspace } from '@codexsun/ui/layouts/main-workspace'
 import { MasterForm, MasterListDesk } from '@codexsun/ui/blocks/master-list'
-import { Button } from '@codexsun/ui/components/button'
 import { productApi, sessionApi } from './api'
 
 const emptyProduct = {
@@ -109,9 +108,17 @@ function ProductsPage() {
   )
 
   async function removeProduct(product) {
-    if (!window.confirm(`Delete ${product.product_name || product.item}? The ERPNext Item will be kept.`)) return
     try {
       await productApi.remove(product.name)
+      await loadProducts()
+    } catch (exception) {
+      setError(exception.message)
+    }
+  }
+
+  async function suspendProduct(product) {
+    try {
+      await productApi.update(product.name, { enabled: 0 })
       await loadProducts()
     } catch (exception) {
       setError(exception.message)
@@ -128,10 +135,12 @@ function ProductsPage() {
           render: (record) => field.format ? field.format(record[field.id], record) : record[field.id] || '—',
         }))}
         filters={productListFields.slice(0, 4).map((field) => ({ id: field.id, label: field.label }))}
+        filterPlacement="columns"
         getFilterValue={(record, filterId) => String(record[filterId] ?? '')}
         onDelete={removeProduct}
         onEdit={(product) => navigate(`/products/${encodeURIComponent(product.name)}/edit`)}
         onPrimaryAction={() => navigate('/products/new')}
+        onSuspend={suspendProduct}
         primaryActionLabel="Add product"
         records={records}
         title="Products"
@@ -225,7 +234,6 @@ function ProductEditor({ mode }) {
           else setValues((current) => ({ ...current, [field]: value }))
         }}
         formId="logicx-product-form"
-        hideSubmitButton={isEdit || isLink}
         submitLabel={isEdit ? 'Update product' : 'Create product'}
         title={isEdit ? 'Edit product' : isLink ? 'Link existing item' : 'New product'}
         values={values}
@@ -257,33 +265,6 @@ export default function LogicXProductWorkspace() {
     },
   ]
 
-  const isProductRoute = location.pathname.startsWith('/products')
-  const isEditPage = /^\/products\/[^/]+\/edit$/.test(location.pathname)
-  const isNewPage = location.pathname === '/products/new'
-  const isLinkPage = location.pathname === '/products/link'
-  const headerTitle = isEditPage ? 'Edit product' : isNewPage ? 'New product' : isLinkPage ? 'Link product' : 'Products'
-  const headerAction = isEditPage ? (
-    <Button form="logicx-product-form" size="sm" type="submit">
-      <SaveIcon />
-      Save
-    </Button>
-  ) : isNewPage ? (
-    <Button form="logicx-product-form" size="sm" type="submit">
-      <PlusIcon />
-      Create product
-    </Button>
-  ) : isLinkPage ? (
-    <Button form="logicx-product-form" size="sm" type="submit">
-      <PlusIcon />
-      Link product
-    </Button>
-  ) : (
-    <Button onClick={() => navigate('/products/new')} size="sm" type="button">
-      <PlusIcon />
-      Add product
-    </Button>
-  )
-
   return (
     <MainWorkspace
       applicationIcon={BoxesIcon}
@@ -292,17 +273,12 @@ export default function LogicXProductWorkspace() {
       applicationName="LogicX"
       defaultFeatures={{ primaryActivityRail: false, secondaryUtilityRail: false }}
       apps={[{ active: true, href: '/logicx-app', icon: BoxesIcon, label: 'LogicX' }]}
-      applicationHeaderEnd={headerAction}
-      applicationHeaderTitle={headerTitle}
       contentClassName="h-full min-h-full overflow-visible"
       navigation={navigation}
       notificationCount={0}
       onSearchChange={() => {}}
       primaryAction={{ icon: PlusIcon, label: 'Add product', onSelect: () => navigate('/products/new') }}
-      showApplicationIdentity={false}
       showTopologyTools={false}
-      showApplicationHeader={isProductRoute}
-      showWorkspaceTitleInHeader={false}
       statusLabel="Connected"
       user={{
         email: user.email,

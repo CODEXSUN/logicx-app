@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "name": "logicx-app",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "LogicX application for Frappe and ERPNext",
   "scripts": {
     "postinstall": "npm --prefix frontend install",
