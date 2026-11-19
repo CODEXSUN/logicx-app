@@ -11,10 +11,12 @@ from typing import Any
 import frappe
 from frappe import _
 from frappe.utils import cint
+from frappe.utils.synchronization import filelock
 
-ACTIVE_PHASES = {"queued", "pulling", "migrating", "building", "clearing_cache"}
+ACTIVE_PHASES = {"queued", "pulling", "installing_dependencies", "migrating", "building", "clearing_cache"}
 COMMAND_TIMEOUTS = {
 	"pulling": 180,
+	"installing_dependencies": 600,
 	"migrating": 900,
 	"building": 1200,
 	"clearing_cache": 180,
@@ -34,65 +36,87 @@ def get_update_status(refresh: int = 1) -> dict[str, Any]:
 	return {
 		**state,
 		**repository,
-		"phase": "failed" if state.get("phase") == "failed" else "idle",
+		"phase": state.get("phase", "idle"),
+		"message": state["message"] if state.get("phase") in {"failed", "complete"} else repository["message"],
+		"repository_message": repository["message"],
 	}
 
 
 @frappe.whitelist(methods=["POST"])
 def start_update() -> dict[str, Any]:
 	_require_administrator()
-	current = _read_state()
-	if current.get("phase") in ACTIVE_PHASES:
-		return current
-
-	repository = _inspect_repository(fetch=True)
-	if repository["dirty"]:
-		frappe.throw(
-			_("Commit or discard local app changes before you run a live update."),
-			title=_("Update blocked"),
-		)
-	if not repository["update_available"]:
-		return {**repository, "phase": "idle", "message": _("LogicX is current.")}
-
-	site = frappe.local.site
-	state = {
-		**repository,
-		"phase": "queued",
-		"message": _("Update queued."),
-		"requested_by": frappe.session.user,
-	}
-	_write_state(state)
-	frappe.enqueue(
-		"logicx_app.update.run_update",
-		queue="long",
-		timeout=2700,
-		job_id=f"logicx-update:{site}",
-		deduplicate=True,
-		site=site,
-	)
-	return state
+	return _start_operation(pull=True)
 
 
-def run_update(site: str) -> None:
+@frappe.whitelist(methods=["POST"])
+def start_maintenance() -> dict[str, Any]:
+	_require_administrator()
+	return _start_operation(pull=False)
+
+
+def _start_operation(*, pull: bool) -> dict[str, Any]:
+	with filelock("logicx-update", timeout=10):
+		current = _read_state()
+		if current.get("phase") in ACTIVE_PHASES:
+			return current
+
+		repository = {}
+		if pull:
+			repository = _inspect_repository(fetch=True)
+			if repository["dirty"]:
+				frappe.throw(_("Commit or discard local app changes before you run a live update."))
+			if not repository["update_available"]:
+				return {**repository, "phase": "idle"}
+
+		site = frappe.local.site
+		state = {
+			**repository,
+			"phase": "queued",
+			"message": _("Update queued.") if pull else _("Migration and build queued."),
+			"requested_by": frappe.session.user,
+		}
+		_write_state(state)
+		try:
+			frappe.enqueue(
+				"logicx_app.update.run_update",
+				queue="long",
+				timeout=3300,
+				job_id=f"logicx-update:{site}",
+				deduplicate=True,
+				site=site,
+				pull=pull,
+			)
+		except Exception as error:
+			_write_state({"phase": "failed", "message": _safe_error(error)})
+			raise
+		return state
+
+
+def run_update(site: str, pull: bool = True) -> None:
+	repository = _repository_root()
 	commands = [
-		("pulling", _git_command("pull", "--ff-only"), _repository_root()),
+		("installing_dependencies", ["npm", "--prefix", "frontend", "ci"], repository),
 		("migrating", ["bench", "--site", site, "migrate"], _bench_root()),
 		("building", ["bench", "build", "--app", "logicx_app"], _bench_root()),
 		("clearing_cache", ["bench", "--site", site, "clear-cache"], _bench_root()),
 	]
 
+	if pull:
+		commands.insert(0, ("pulling", _git_command("pull", "--ff-only"), repository))
+
 	try:
-		for phase, command, cwd in commands:
-			_write_state({"phase": phase, "message": _phase_message(phase)})
-			_run(command, cwd, COMMAND_TIMEOUTS[phase])
-		_write_state(
-			{
-				"phase": "complete",
-				"message": _("Update complete. Reloading LogicX."),
-				"update_available": False,
-				"version": _read_version(),
-			}
-		)
+		with filelock("logicx-bench-maintenance", is_global=True):
+			for phase, command, cwd in commands:
+				_write_state({"phase": phase, "message": _phase_message(phase)})
+				_run(command, cwd, COMMAND_TIMEOUTS[phase])
+			_write_state(
+				{
+					"phase": "complete",
+					"message": _("Update complete.") if pull else _("Migration and build complete."),
+					**({"update_available": False} if pull else {}),
+					"version": _read_version(),
+				}
+			)
 	except Exception as error:
 		frappe.logger("logicx_app.update").exception("LogicX live update failed")
 		_write_state({"phase": "failed", "message": _safe_error(error)})
@@ -107,24 +131,31 @@ def _require_administrator() -> None:
 def _inspect_repository(fetch: bool) -> dict[str, Any]:
 	root = _repository_root()
 	branch = _git(root, "branch", "--show-current")
-	if not branch:
-		frappe.throw(_("LogicX must be on a Git branch before it can update."))
-
-	upstream = _git(root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
-	if fetch:
-		_git(root, "fetch", "--quiet", "origin", branch, timeout=90)
-
-	behind = int(_git(root, "rev-list", "--count", f"HEAD..{upstream}") or 0)
-	ahead = int(_git(root, "rev-list", "--count", f"{upstream}..HEAD") or 0)
+	upstream = _git(root, "for-each-ref", "--format=%(upstream:short)", f"refs/heads/{branch}") if branch else ""
 	dirty_lines = _git(root, "status", "--porcelain").splitlines()
+	ahead = behind = 0
+	if upstream:
+		if fetch:
+			_git(root, "fetch", "--quiet", timeout=90)
+		behind = int(_git(root, "rev-list", "--count", f"HEAD..{upstream}") or 0)
+		ahead = int(_git(root, "rev-list", "--count", f"{upstream}..HEAD") or 0)
+
+	message = _("LogicX is current.")
+	if not upstream:
+		message = _("Configure a tracked Git branch to enable updates.")
+	elif ahead and behind:
+		message = _("The local branch and its upstream have diverged.")
+	elif behind:
+		message = _("An update is available.")
+
 	return {
 		"ahead": ahead,
 		"behind": behind,
 		"branch": branch,
 		"dirty": bool(dirty_lines),
 		"dirty_files": len(dirty_lines),
-		"message": _("An update is available.") if behind else _("LogicX is current."),
-		"update_available": behind > 0,
+		"message": message,
+		"update_available": behind > 0 and ahead == 0,
 		"version": _read_version(),
 	}
 
@@ -196,6 +227,7 @@ def _read_version() -> str:
 def _phase_message(phase: str) -> str:
 	return {
 		"pulling": _("Pulling the latest source."),
+		"installing_dependencies": _("Installing locked frontend dependencies."),
 		"migrating": _("Running site migrations."),
 		"building": _("Building LogicX assets."),
 		"clearing_cache": _("Clearing the site cache."),

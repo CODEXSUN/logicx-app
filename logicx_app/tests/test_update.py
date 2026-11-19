@@ -37,6 +37,7 @@ class TestLiveUpdate(IntegrationTestCase):
 					repository,
 					180,
 				),
+				call(["npm", "--prefix", "frontend", "ci"], repository, 600),
 				call(["bench", "--site", "logicx.localhost", "migrate"], bench, 900),
 				call(["bench", "build", "--app", "logicx_app"], bench, 1200),
 				call(["bench", "--site", "logicx.localhost", "clear-cache"], bench, 180),

@@ -143,6 +143,9 @@ export const updateApi = {
   start() {
     return request(`${updateMethod}.start_update`, { method: 'POST' })
   },
+  maintain() {
+    return request(`${updateMethod}.start_maintenance`, { method: 'POST' })
+  },
 }
 
 function initials(value) {
@@ -152,4 +155,13 @@ function initials(value) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() || '')
     .join('')
+}
+
+export const agentChatApi = {
+  reply(mode, messages) {
+    return request('/api/method/logicx_app.agent_chat.reply', {
+      method: 'POST',
+      body: JSON.stringify({ mode, messages }),
+    })
+  },
 }

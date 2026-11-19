@@ -2,11 +2,28 @@
 
 ## Version State
 
-Current version: 0.1.3
+Current version: 0.1.4
 
-Release tag: v-0.1.3
+Release tag: v-0.1.4
 
-Changelog label: v 0.1.3
+Changelog label: v 0.1.4
+
+## v-0.1.4
+
+### [v 0.1.4] 2026-11-19 3:28 pm - Planning, agent chat, and workspace maintenance
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Added Planning for the garments workflow from fabric receipt and inspection through dispatch.
+- Added Agentic Coding for Administrator review of implementation and test plans.
+- Added collapsible agent chat backed by Frappe and the OpenAI Responses API.
+- Added Administrator controls to check for Git updates or migrate and build the current checkout.
+- The maintenance job installs locked frontend dependencies, runs site migrations, builds assets, and clears the cache.
+- Updated the version checker to use package manifests, the frontend lockfile, Python metadata, and the changelog.
 
 ## v-0.1.3
 

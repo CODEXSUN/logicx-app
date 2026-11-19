@@ -87,12 +87,6 @@ def bump_next_version(
 		f'__version__ = "{new_version}"',
 		"Python version",
 	)
-	replace_required(
-		root / "frontend/src/App.jsx",
-		re.compile(r"LogicX v\d+\.\d+\.\d+"),
-		f"LogicX v{new_version}",
-		"sidebar version",
-	)
 	update_changelog(root, new_version, title, database_state)
 	return BumpResult(str(current_version), new_version, title, database_state)
 
@@ -129,7 +123,6 @@ def check_versions(root: Path) -> tuple[str, list[str]]:
 		("frontend/package-lock.json", str(lock["version"])),
 		("frontend/package-lock.json root package", str(lock.get("packages", {}).get("", {}).get("version"))),
 		("logicx_app/__init__.py", read_match(root / "logicx_app/__init__.py", r'^__version__\s*=\s*["\']([^"\']+)["\']', "Python version")),
-		("App.jsx", read_match(root / "frontend/src/App.jsx", r"LogicX v(\d+\.\d+\.\d+)", "sidebar version")),
 	]
 	failures = [f"{label} is {actual}; expected {version}." for label, actual in expected if actual != version]
 	changelog = (root / CHANGELOG_PATH).read_text(encoding="utf-8")

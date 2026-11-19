@@ -73,12 +73,12 @@ The release history is in [`docs/changelog.md`](docs/changelog.md).
 
 ## Live updates
 
-Administrator can use the update control beside the sidebar version.
+In **Agentic Coding → Updates and maintenance**, Administrator can check for and apply a Git update,
+or migrate and build the current checkout. Git updates require a clean checkout on a tracked branch
+that can fast-forward.
 
-The update requires a clean app checkout on a tracked Git branch. It stops when local changes exist.
-
-The background job pulls with fast-forward only. It then runs migration, asset build, and cache clear.
-The browser reloads after the update completes.
+The background job installs the locked frontend dependencies, runs site migrations, builds the app
+assets, and clears the site cache. The panel shows progress and offers a reload when the job finishes.
 
 ## Current domain model
 
@@ -88,3 +88,14 @@ The browser reloads after the update completes.
 ## License
 
 MIT
+
+## Planning and agent chat
+
+Open **Planning** or **Agentic Coding** from the LogicX sidebar. Planning covers the garment workflow from
+fabric receipt through dispatch. Agentic Coding requires the Frappe Administrator account and drafts
+implementation and test plans from the context supplied in chat. It does not edit the checkout or run commands.
+
+Set `OPENAI_API_KEY` and `LOGICX_OPENAI_MODEL` in the Frappe web process environment, or use the private
+Frappe site configuration keys `logicx_openai_api_key` and `logicx_openai_model`. Allow outbound HTTPS to
+`api.openai.com`. The server sends the recent chat turns to the provider. Conversations live in the active
+page and reset when leaving the workspace.

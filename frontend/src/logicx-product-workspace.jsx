@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { BoxesIcon, LayoutDashboardIcon, PackageIcon, PlusIcon } from 'lucide-react'
+import { BoxesIcon, Code2Icon, LayoutDashboardIcon, ListChecksIcon, PackageIcon, PlusIcon } from 'lucide-react'
 import { MainWorkspace } from '@codexsun/ui/layouts/main-workspace'
 import { MasterForm, MasterListDesk } from '@codexsun/ui/blocks/master-list'
 import { productApi, sessionApi } from './api'
+import AgentWorkspace from './agent-workspace'
 
 const emptyProduct = {
   item: '',
@@ -261,6 +262,18 @@ export default function LogicXProductWorkspace() {
           active: location.pathname.startsWith('/products'),
           onSelect: () => navigate('/products'),
         },
+        {
+          label: 'Planning',
+          icon: ListChecksIcon,
+          active: location.pathname === '/planning',
+          onSelect: () => navigate('/planning'),
+        },
+        {
+          label: 'Agentic Coding',
+          icon: Code2Icon,
+          active: location.pathname === '/coding',
+          onSelect: () => navigate('/coding'),
+        },
       ],
     },
   ]
@@ -277,7 +290,7 @@ export default function LogicXProductWorkspace() {
       navigation={navigation}
       notificationCount={0}
       onSearchChange={() => {}}
-      primaryAction={{ icon: PlusIcon, label: 'Add product', onSelect: () => navigate('/products/new') }}
+      primaryAction={location.pathname.startsWith('/products') ? { icon: PlusIcon, label: 'Add product', onSelect: () => navigate('/products/new') } : undefined}
       showTopologyTools={false}
       statusLabel="Connected"
       user={{
@@ -297,6 +310,8 @@ export default function LogicXProductWorkspace() {
         <Route path="/products/new" element={<ProductEditor mode="new" />} />
         <Route path="/products/link" element={<ProductEditor mode="link" />} />
         <Route path="/products/:name/edit" element={<ProductEditor mode="edit" />} />
+        <Route path="/planning" element={<AgentWorkspace key="planning" mode="planning" />} />
+        <Route path="/coding" element={<AgentWorkspace key="coding" mode="coding" isAdministrator={user.email === 'Administrator'} />} />
         <Route path="*" element={<Navigate replace to="/products" />} />
       </Routes>
     </MainWorkspace>
