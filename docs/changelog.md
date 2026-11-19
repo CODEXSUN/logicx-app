@@ -25,6 +25,12 @@ Changelog label: v 0.1.4
 - The maintenance job installs locked frontend dependencies, runs site migrations, builds assets, and clears the cache.
 - Updated the version checker to use package manifests, the frontend lockfile, Python metadata, and the changelog.
 
+#### Verification
+
+- Verified **Update from Git** end to end from the Agentic Coding page on a temporary local branch.
+- The browser detected an available commit and showed completion after the fast-forward pull, locked dependency install, site migration, asset build, and cache clear.
+- **Reload LogicX** reopened the Agentic Coding page after the update.
+
 ## v-0.1.3
 
 ### [v 0.1.3] 2026-09-26 - Master List v3 row actions
