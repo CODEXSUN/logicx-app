@@ -2,11 +2,30 @@
 
 ## Version State
 
-Current version: 0.1.4
+Current version: 0.1.5
 
-Release tag: v-0.1.4
+Release tag: v-0.1.5
 
-Changelog label: v 0.1.4
+Changelog label: v 0.1.5
+
+## v-0.1.5
+
+### [v 0.1.5] 2026-11-19 6:31 pm - Document VPS deployment prerequisites
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped the LogicX version to 0.1.5.
+
+#### Deployment Notes
+
+- The development stack was verified with Frappe 16.36.1 and ERPNext 16.37.0. Newer Frappe releases removed a helper used by the LogicX install hook.
+- Production deployment needs a Linux VPS, a DNS hostname, HTTPS, persistent storage, and database backups. Keep MariaDB and Redis on a private network.
+- Live agent chat requires an OpenAI API key and model configured on the Frappe server.
+- The frontend Git update pipeline was verified on a temporary local branch in development.
 
 ## v-0.1.4
 
