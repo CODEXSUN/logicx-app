@@ -33,3 +33,21 @@ Checks for this closure: syntax of pending Python, JSON, JavaScript and shell fi
 Actual deferred runtime prerequisite: Docker reports no local `ghcr.io/codexsun/logicx-app:v-0.1.6` image. A future owner must obtain separate authorization for image acquisition/build and isolated integration verification before release tagging or deployment. This is a runtime/release gate, not a remaining uncommitted-source blocker. No Platform files/settings/services were accessed or changed by executing these checks.
 
 Governance's `future/frappe-codebiz.md` is a separate completed documentation handoff. Its authorship and readiness were confirmed to the Governance owner; it does not belong in this LogicX commit.
+
+
+## Disposable-artifact cleanup — 23 November 2026
+
+Under the human's disk-cleanup instruction, removed only the following Python bytecode directories after verifying canonical paths stay inside LogicX, no path/ancestor is a junction or symlink, and each directory contains only `.pyc` files:
+
+- `logicx_app/logicx/doctype/general_master/__pycache__`
+- `logicx_app/logicx/doctype/line_master/__pycache__`
+- `logicx_app/logicx/doctype/logicx_product/__pycache__`
+- `logicx_app/logicx/doctype/__pycache__`
+- `logicx_app/logicx/__pycache__`
+- `logicx_app/www/__pycache__`
+- `logicx_app/__pycache__`
+- `tools/__pycache__`
+
+Freed 97,115 bytes across eight reproducible bytecode-cache directories. No tracked source or records were deleted. No dedicated LogicX process was found; `logicx-dev` was stopped, not removed/restarted. Generated frontend/current entry assets were retained for the existing checkout consumer, along with dependency installs, private `.codeship` state, smoke logs/screenshots as verification evidence, and all Docker images/volumes. Shared/global caches, other repositories and Platform resources were not touched.
+
+The published deployment sources remain explicitly deferred prototypes until their documented image/integration gate is satisfied. Their reviewed history and release-status documentation are retained; no unsupported runtime was deployed, and no accepted source was rolled back. Version stays 0.1.6 because this is artifact/documentation cleanup only. New jobs remain frozen after the cleanup receipt.
