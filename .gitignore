@@ -70,3 +70,6 @@ logicx_app/public/node_modules
 
 # Remote operations MCP audit output.
 storage/runtime/remote-mcp-audit.jsonl
+.codeship/
+release-manifest.json
+image.tar.gz

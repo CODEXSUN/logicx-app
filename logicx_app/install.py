@@ -1,12 +1,16 @@
 import frappe
-from frappe.utils.install import auto_generate_icons_and_sidebar
+from frappe.utils import install as frappe_install
 
 APP_NAME = "logicx_app"
 APP_LOGO_URL = "/assets/logicx_app/images/logicx-logo.svg?v=3"
 
 
 def after_install():
-	auto_generate_icons_and_sidebar(APP_NAME)
+	# Frappe v16.60 replaced the earlier sidebar/icon bootstrap helper.
+	generate = getattr(frappe_install, "create_desktop_icons_for_app", None)
+	if generate is None:
+		generate = frappe_install.auto_generate_icons_and_sidebar
+	generate(APP_NAME)
 	update_desktop_icon_logo()
 
 

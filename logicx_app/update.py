@@ -126,6 +126,8 @@ def run_update(site: str, pull: bool = True) -> None:
 def _require_administrator() -> None:
 	if frappe.session.user != "Administrator":
 		frappe.throw(_("Only Administrator can update LogicX."), frappe.PermissionError)
+	if os.getenv("LOGICX_MANAGED_RELEASE") == "1":
+		frappe.throw(_("This installation is maintained through CodeShip tagged releases."))
 
 
 def _inspect_repository(fetch: bool) -> dict[str, Any]:

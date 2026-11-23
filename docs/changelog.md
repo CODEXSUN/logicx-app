@@ -2,11 +2,33 @@
 
 ## Version State
 
-Current version: 0.1.5
+Current version: 0.1.6
 
-Release tag: v-0.1.5
+Release tag: v-0.1.6
 
-Changelog label: v 0.1.5
+Changelog label: v 0.1.6
+
+## v-0.1.6
+
+### [v 0.1.6] 2026-11-23 - Garment masters and development preparation
+
+#### Database Changes
+
+- General Master and Line Master DocType definitions are included in source. Applying them to a site requires its separately approved migration; this publication runs no database changes.
+
+#### App Codebase Changes
+
+- General Master list, New/Edit and combined workspace support Master Head/Value records, existing-head live filtering and a focus-controlled floating lookup drawer.
+- Line Master source and shared single-column entry/keyboard behavior are included.
+- Updated the install hook for old/new Frappe desktop-icon helpers and disabled source-update/release commands when an installation explicitly declares managed-release mode.
+- Preserved the existing login-button visual feedback change without changing authentication behavior.
+- Synchronized Python and package/lockfile versions at 0.1.6; no dependency versions changed.
+
+#### Verification and Publication State
+
+- Frontend build and four master API tests passed during source closure. The final freeze check passed seven Node tests, four Python tests and version consistency.
+- This is a source publication, not a tagged image release or deployment. No v-0.1.6 tag, image publication, site installation, data cleanup or server change is performed by this closure.
+- Earlier container/deployment prototypes and their related documents/tests remain preserved locally pending owner review and separately authorized release-image/integration verification. They are not certified production-ready by this changelog.
 
 ## v-0.1.5
 

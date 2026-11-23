@@ -132,7 +132,7 @@ export function LoginPage({
           ) : null}
           <Field>
             <Button
-              className="w-full"
+              className="w-full transition-[transform,box-shadow,background-color,color] duration-200 ease-out enabled:hover:shadow-md motion-safe:enabled:hover:-translate-y-0.5 motion-safe:enabled:active:translate-y-0 motion-reduce:transition-none"
               disabled={busy}
               type="submit"
               variant={variant === 'v1' ? 'success' : 'default'}

@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import os
 from pathlib import Path
 
 import click
 
-from tools.release import append_changelog, bump_next_version, check_versions, read_json
+if os.getenv("LOGICX_MANAGED_RELEASE") != "1":
+	from tools.release import append_changelog, bump_next_version, check_versions, read_json
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -70,4 +72,4 @@ def github_now(context: click.Context) -> None:
 		raise click.ClickException(f"GitHub release workflow failed with exit code {result.returncode}.")
 
 
-commands = [logicx_release]
+commands = [] if os.getenv("LOGICX_MANAGED_RELEASE") == "1" else [logicx_release]
