@@ -1,4 +1,5 @@
 **
+!package.json
 !frontend/
 !frontend/**
 !logicx_app/

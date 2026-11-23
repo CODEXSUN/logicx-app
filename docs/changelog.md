@@ -18,6 +18,7 @@ Changelog label: v 0.1.6
 
 #### App Codebase Changes
 
+- Added the running app name/version at the status bar bottom right, generated from the canonical root manifest; extended version checks for current changelog and generated frontend metadata. This does not represent the latest published GitHub release.
 - General Master list, New/Edit and combined workspace support Master Head/Value records, existing-head live filtering and a focus-controlled floating lookup drawer.
 - Line Master source and shared single-column entry/keyboard behavior are included.
 - Updated the install hook for old/new Frappe desktop-icon helpers and disabled source-update/release commands when an installation explicitly declares managed-release mode.
@@ -28,7 +29,7 @@ Changelog label: v 0.1.6
 
 - Frontend build and four master API tests passed during source closure. The final freeze check passed seven Node tests, four Python tests and version consistency.
 - This is a source publication, not a tagged image release or deployment. No v-0.1.6 tag, image publication, site installation, data cleanup or server change is performed by this closure.
-- Earlier container/deployment prototypes and their related documents/tests remain preserved locally pending owner review and separately authorized release-image/integration verification. They are not certified production-ready by this changelog.
+- Earlier container/deployment prototypes and their related documents/tests are published as explicitly unverified source pending owner review and separately authorized release-image/integration verification. They are not certified production-ready by this changelog.
 
 ## v-0.1.5
 

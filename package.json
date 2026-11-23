@@ -15,5 +15,6 @@
     "changelog:append": "python tools/version.py append",
     "check:versions": "python tools/version.py check",
     "github:now": "python tools/github_now.py"
-  }
+  },
+  "displayName": "LogicX"
 }

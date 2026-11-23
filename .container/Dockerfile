@@ -2,6 +2,7 @@ ARG NODE_IMAGE=node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebf
 ARG FRAPPE_IMAGE=frappe/erpnext:v16.60.0@sha256:0a05a56123efb2be47e429d440d07f369ed34c7a2de302e0ae7389d163867b30
 FROM ${NODE_IMAGE} AS web
 WORKDIR /build
+COPY package.json ./package.json
 COPY frontend ./frontend
 RUN mkdir -p logicx_app/public/frontend logicx_app/www
 RUN cd frontend && npm ci --ignore-scripts --no-audit && npm run build

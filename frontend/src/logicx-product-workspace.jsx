@@ -1,3 +1,4 @@
+import { buildMetadata, buildLabel } from './build-metadata'
 import GeneralMasterWorkspace from './general-master-workspace'
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -306,7 +307,7 @@ export default function LogicXProductWorkspace() {
       applicationIcon={BoxesIcon}
       applicationId="logicx"
       applicationLogoUrl="/assets/logicx_app/images/logicx-logo.svg?v=3"
-      applicationName="LogicX"
+      applicationName={buildMetadata.appName}
       defaultFeatures={{ primaryActivityRail: false, secondaryUtilityRail: false }}
       apps={[{ active: true, href: '/logicx-app', icon: BoxesIcon, label: 'LogicX' }]}
       contentClassName="min-h-0 min-w-0"
@@ -316,6 +317,7 @@ export default function LogicXProductWorkspace() {
       primaryAction={{ icon: LayoutDashboardIcon, label: 'Overview', onSelect: () => goTo('/') }}
       showTopologyTools={false}
       statusLabel="Connected"
+      statusEnd={buildLabel}
       user={{
         email: user.email,
         initials: user.initials,

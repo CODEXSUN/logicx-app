@@ -79,6 +79,8 @@ def bump_next_version(
 	database_state = resolve_database_update(root, database_update)
 
 	update_json_version(root / "package.json", new_version)
+	if (root / "package-lock.json").exists():
+		update_package_lock(root / "package-lock.json", new_version)
 	update_json_version(root / "frontend/package.json", new_version)
 	update_package_lock(root / "frontend/package-lock.json", new_version)
 	replace_required(
@@ -132,8 +134,43 @@ def check_versions(root: Path) -> tuple[str, list[str]]:
 		("changelog label", f"Changelog label: v {version}"),
 		("version section", f"## v-{version}"),
 	]:
-		if value not in changelog:
+		if not re.search(r"^" + re.escape(value) + r"[ \t]*$", changelog, re.MULTILINE):
 			failures.append(f"The changelog {label} must contain {value}.")
+	latest = read_latest_release(root)
+	if latest.version != version:
+		failures.append(f"Latest changelog entry is {latest.version}; expected {version}.")
+	root_lock_path = root / "package-lock.json"
+	if root_lock_path.exists():
+		root_lock = read_json(root_lock_path)
+		for label, actual in [("root lock version", root_lock.get("version")),
+			("root lock package version", root_lock.get("packages", {}).get("", {}).get("version"))]:
+			if actual != version:
+				failures.append(f"{label} is {actual}; expected {version}.")
+	app_name = read_json(root / "package.json").get("displayName")
+	if not isinstance(app_name, str) or not app_name.strip():
+		failures.append("Root package displayName is required for the running app label.")
+	status_source_path = root / "frontend/src/logicx-product-workspace.jsx"
+	if status_source_path.exists() and "statusEnd={buildLabel}" not in status_source_path.read_text(encoding="utf-8"):
+		failures.append("Frontend status must consume the generated buildLabel through the shared statusEnd slot.")
+	build_source_path = root / "frontend/src/build-metadata.js"
+	if build_source_path.exists() and "__LOGICX_BUILD_METADATA__" not in build_source_path.read_text(encoding="utf-8"):
+		failures.append("Frontend build metadata must consume the canonical build-time injection.")
+	metadata_path = root / "logicx_app/public/frontend/build-metadata.json"
+	if metadata_path.exists():
+		metadata = read_json(metadata_path)
+		if metadata != {"appName": app_name, "version": version}:
+			failures.append("Generated frontend build metadata differs from the canonical root package; rebuild frontend.")
+	for adapter_name in (".container/prepare-release.mjs", ".container/ubuntu.mjs"):
+		adapter_path = root / adapter_name
+		if adapter_path.exists():
+			adapter_tags = set(re.findall(r"v-(\d+\.\d+\.\d+)", adapter_path.read_text(encoding="utf-8")))
+			if adapter_tags and adapter_tags != {version}:
+				failures.append(f"{adapter_name} release tag references differ from {version}; review the release adapter.")
+	release_manifest_path = root / "release-manifest.json"
+	if release_manifest_path.exists():
+		release_manifest = read_json(release_manifest_path)
+		if release_manifest.get("version") != version or release_manifest.get("tag") != f"v-{version}":
+			failures.append("Generated release manifest version/tag differs from the canonical root package.")
 	return version, failures
 
 
