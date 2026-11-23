@@ -1,11 +1,5 @@
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from '../../components/combobox'
+import { useId } from 'react'
+import { LookupDrawer } from '../../components/lookup-drawer'
 import { Field, FieldLabel } from '../../components/field'
 
 export type FormLookupOption = {
@@ -28,33 +22,15 @@ export function FormLookupField({
   required?: boolean
   value: string
 }) {
+  const id = useId()
   return (
-    <Field>
-      <FieldLabel>
+    <Field data-entry-field>
+      <FieldLabel htmlFor={id}>
         {label}
         {required ? <span className="text-destructive">*</span> : null}
       </FieldLabel>
-      <Combobox
-        items={options.map((option) => option.value)}
-        onValueChange={(nextValue) => onValueChange(nextValue ?? '')}
-        value={value}
-      >
-        <ComboboxInput className="h-10" placeholder={placeholder} showClear />
-        <ComboboxContent>
-          <ComboboxEmpty>No matching option.</ComboboxEmpty>
-          <ComboboxList>
-            {options.map((option) => (
-              <ComboboxItem
-                className="min-h-10 cursor-pointer px-3"
-                key={option.value}
-                value={option.value}
-              >
-                {option.label}
-              </ComboboxItem>
-            ))}
-          </ComboboxList>
-        </ComboboxContent>
-      </Combobox>
+      <LookupDrawer id={id} label={label} required={required} options={options}
+        value={value} onValueChange={onValueChange} placeholder={placeholder} />
     </Field>
   )
 }

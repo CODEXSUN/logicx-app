@@ -1,0 +1,66 @@
+{
+  "doctype": "DocType",
+  "name": "Line Master",
+  "module": "LogicX",
+  "autoname": "format:LM-{#####}",
+  "naming_rule": "Expression",
+  "engine": "InnoDB",
+  "search_fields": "factory,floor,area,line_no",
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "track_changes": 1,
+  "field_order": [
+    "factory",
+    "floor",
+    "area",
+    "line_no"
+  ],
+  "fields": [
+    {
+      "fieldname": "factory",
+      "label": "Factory",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "floor",
+      "label": "Floor",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "area",
+      "label": "Area",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "line_no",
+      "label": "Line No",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "create": 1,
+      "write": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1
+    }
+  ],
+  "actions": [],
+  "links": [],
+  "states": []
+}

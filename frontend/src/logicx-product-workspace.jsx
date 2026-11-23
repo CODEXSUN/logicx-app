@@ -1,3 +1,4 @@
+import GeneralMasterWorkspace from './general-master-workspace'
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { BoxesIcon, Code2Icon, LayoutDashboardIcon, ListChecksIcon, PackageIcon, PlusIcon } from 'lucide-react'
@@ -5,6 +6,10 @@ import { MainWorkspace } from '@codexsun/ui/layouts/main-workspace'
 import { MasterForm, MasterListDesk } from '@codexsun/ui/blocks/master-list'
 import { productApi, sessionApi } from './api'
 import AgentWorkspace from './agent-workspace'
+import GeneralMasterRoutes from './general-master'
+import LineMasterRoutes from './line-master'
+import './master-lists.css'
+import { Button } from '@codexsun/ui/components/button'
 
 const emptyProduct = {
   item: '',
@@ -247,6 +252,12 @@ export default function LogicXProductWorkspace() {
   const location = useLocation()
   const navigate = useNavigate()
   const [user, setUser] = useState({ email: '', name: 'Administrator', initials: 'A' })
+  const [masterAction, setMasterAction] = useState(null)
+
+  function goTo(path) {
+    if (masterAction?.confirmLeave && !masterAction.confirmLeave()) return
+    navigate(path)
+  }
 
   useEffect(() => {
     sessionApi.currentUser().then((currentUser) => setUser({ ...currentUser, initials: currentUser.fallback })).catch(() => {})
@@ -254,25 +265,37 @@ export default function LogicXProductWorkspace() {
 
   const navigation = [
     {
+      label: 'Master',
+      items: [{ label: 'General Master', icon: ListChecksIcon,
+        active: location.pathname.startsWith('/general-masters') && location.pathname !== '/general-masters/workspace',
+        onSelect: () => goTo('/general-masters') },
+        { label: 'General Master Workspace', icon: ListChecksIcon,
+          active: location.pathname === '/general-masters/workspace',
+          onSelect: () => goTo('/general-masters/workspace') },
+        { label: 'Line Master', icon: ListChecksIcon,
+          active: location.pathname.startsWith('/line-masters'),
+          onSelect: () => goTo('/line-masters') }],
+    },
+    {
       label: 'Workspace',
       items: [
         {
           label: 'Products',
           icon: PackageIcon,
           active: location.pathname.startsWith('/products'),
-          onSelect: () => navigate('/products'),
+          onSelect: () => goTo('/products'),
         },
         {
           label: 'Planning',
           icon: ListChecksIcon,
           active: location.pathname === '/planning',
-          onSelect: () => navigate('/planning'),
+          onSelect: () => goTo('/planning'),
         },
         {
           label: 'Agentic Coding',
           icon: Code2Icon,
           active: location.pathname === '/coding',
-          onSelect: () => navigate('/coding'),
+          onSelect: () => goTo('/coding'),
         },
       ],
     },
@@ -286,11 +309,11 @@ export default function LogicXProductWorkspace() {
       applicationName="LogicX"
       defaultFeatures={{ primaryActivityRail: false, secondaryUtilityRail: false }}
       apps={[{ active: true, href: '/logicx-app', icon: BoxesIcon, label: 'LogicX' }]}
-      contentClassName="h-full min-h-full overflow-visible"
+      contentClassName="min-h-0 min-w-0"
       navigation={navigation}
       notificationCount={0}
       onSearchChange={() => {}}
-      primaryAction={location.pathname.startsWith('/products') ? { icon: PlusIcon, label: 'Add product', onSelect: () => navigate('/products/new') } : undefined}
+      primaryAction={{ icon: LayoutDashboardIcon, label: 'Overview', onSelect: () => goTo('/') }}
       showTopologyTools={false}
       statusLabel="Connected"
       user={{
@@ -303,8 +326,19 @@ export default function LogicXProductWorkspace() {
         },
       }}
       workspaceTitle="LogicX workspace"
+      showWorkspaceTitleInHeader={false}
+      showApplicationIdentity={false}
+      showApplicationHeader={/^\/(general|line)-masters/.test(location.pathname)}
+      applicationHeaderTitle={masterAction?.title || (location.pathname.startsWith('/line-masters') ? 'Master / Line Master' : 'Master / General Master')}
+      applicationHeaderEnd={/^\/(general|line)-masters/.test(location.pathname) && masterAction ? <div className="flex gap-2">
+        {masterAction.cancel && <Button variant="outline" disabled={masterAction.disabled} onClick={masterAction.cancel}>Cancel</Button>}
+        <Button data-entry-save={masterAction.cancel || location.pathname === '/general-masters/workspace' ? 'true' : undefined} disabled={masterAction.disabled} onClick={masterAction.onSelect}>{masterAction.label}</Button>
+      </div> : undefined}
     >
       <Routes>
+        <Route path="/line-masters/*" element={<LineMasterRoutes setHeaderAction={setMasterAction} />} />
+        <Route path="/general-masters/workspace" element={<GeneralMasterWorkspace setHeaderAction={setMasterAction} />} />
+        <Route path="/general-masters/*" element={<GeneralMasterRoutes setHeaderAction={setMasterAction} />} />
         <Route path="/" element={<Navigate replace to="/products" />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/new" element={<ProductEditor mode="new" />} />

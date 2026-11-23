@@ -43,6 +43,44 @@ const productFields = [
 ]
 
 const productFieldsQuery = encodeURIComponent(JSON.stringify(productFields))
+const generalMasterFields = ['name', 'type', 'master_name', 'description', 'active', 'tag', 'modified']
+const generalMasterResource = '/api/resource/General%20Master'
+
+export const generalMasterApi = {
+  async heads() {
+    const records = await generalMasterApi.list()
+    return [...new Set(records
+      .filter(record => String(record.type ?? '').trim().toLowerCase() === 'type')
+      .map(record => String(record.master_name ?? '').trim())
+      .filter(Boolean))]
+  },
+  async list() {
+    const records = []
+    const fields = encodeURIComponent(JSON.stringify(generalMasterFields))
+    for (let start = 0; ; start += 500) {
+      const page = await request(`${generalMasterResource}?fields=${fields}&order_by=modified%20desc&limit_start=${start}&limit_page_length=500`)
+      records.push(...page)
+      if (page.length < 500) return records
+    }
+  },
+  get(name) {
+    return request(`${generalMasterResource}/${encodeURIComponent(name)}`)
+  },
+  save(name, values) {
+    const data = {
+      type: values.type.trim(), master_name: values.master_name.trim(),
+      description: values.description.trim(), active: values.active === 'Active' ? 1 : 0, tag: values.tag.trim(),
+    }
+    return request(name ? `${generalMasterResource}/${encodeURIComponent(name)}` : generalMasterResource, {
+      method: name ? 'PUT' : 'POST', body: JSON.stringify(data),
+    })
+  },
+  deactivate(name) {
+    return request(`${generalMasterResource}/${encodeURIComponent(name)}`, {
+      method: 'PUT', body: JSON.stringify({ active: 0 }),
+    })
+  },
+}
 const productMethod = '/api/method/logicx_app.logicx.doctype.logicx_product.logicx_product'
 
 export const productApi = {
@@ -162,6 +200,30 @@ export const agentChatApi = {
     return request('/api/method/logicx_app.agent_chat.reply', {
       method: 'POST',
       body: JSON.stringify({ mode, messages }),
+    })
+  },
+}
+
+const lineMasterResource = '/api/resource/Line%20Master'
+const lineMasterFields = ['name', 'factory', 'floor', 'area', 'line_no', 'modified']
+
+export const lineMasterApi = {
+  async list() {
+    const records = []
+    const fields = encodeURIComponent(JSON.stringify(lineMasterFields))
+    for (let start = 0; ; start += 500) {
+      const page = await request(`${lineMasterResource}?fields=${fields}&order_by=creation%20desc&limit_start=${start}&limit_page_length=500`)
+      records.push(...page)
+      if (page.length < 500) return records
+    }
+  },
+  get(name) {
+    return request(`${lineMasterResource}/${encodeURIComponent(name)}`)
+  },
+  save(name, values) {
+    const data = Object.fromEntries(['factory', 'floor', 'area', 'line_no'].map(key => [key, String(values[key] ?? '').trim()]))
+    return request(name ? `${lineMasterResource}/${encodeURIComponent(name)}` : lineMasterResource, {
+      method: name ? 'PUT' : 'POST', body: JSON.stringify(data),
     })
   },
 }

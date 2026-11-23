@@ -7,7 +7,7 @@ export type MasterRecord = { id: string } & Record<string, MasterValue>;
 export type MasterField = {
   id: string;
   label: string;
-  type?: 'text' | 'email' | 'number' | 'textarea' | 'select';
+  type?: 'text' | 'email' | 'number' | 'textarea' | 'select' | 'lookup';
   options?: readonly { label: string; value: string }[];
   placeholder?: string;
   required?: boolean;

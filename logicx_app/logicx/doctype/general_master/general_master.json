@@ -1,0 +1,27 @@
+{
+ "doctype": "DocType",
+ "name": "General Master",
+ "module": "LogicX",
+ "autoname": "hash",
+ "naming_rule": "Random",
+ "engine": "InnoDB",
+ "title_field": "master_name",
+ "search_fields": "master_name,type,tag",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "field_order": ["type", "master_name", "description", "active", "tag"],
+ "fields": [
+  {"fieldname": "type", "label": "Master Head", "fieldtype": "Data", "reqd": 1, "in_list_view": 1, "in_standard_filter": 1, "search_index": 1},
+  {"fieldname": "master_name", "label": "Value", "fieldtype": "Data", "reqd": 1, "in_list_view": 1, "in_standard_filter": 1, "search_index": 1},
+  {"fieldname": "description", "label": "Description", "fieldtype": "Small Text"},
+  {"fieldname": "active", "label": "Active", "fieldtype": "Check", "default": "1", "in_list_view": 1, "in_standard_filter": 1},
+  {"fieldname": "tag", "label": "Tag", "fieldtype": "Data", "in_list_view": 1, "in_standard_filter": 1}
+ ],
+ "permissions": [
+  {"role": "System Manager", "read": 1, "create": 1, "write": 1, "report": 1, "export": 1, "print": 1}
+ ],
+ "actions": [],
+ "links": [],
+ "states": []
+}
