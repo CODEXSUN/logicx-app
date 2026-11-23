@@ -1,0 +1,5 @@
+{
+  "baseImage": "frappe/build:develop@sha256:85096a2d39b32a6d9a7cc6977fdeeb7fdc551c5ced124c34e26d2e4ac54339f4",
+  "frappe": "e15a7118c5ff932c201c5384802999f8117f30f6",
+  "erpnext": "34b3f4b2bb88a1f6c25dadcd92041e82f30ad42a"
+}

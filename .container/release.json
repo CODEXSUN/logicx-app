@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "name": "logicx-app",
+  "area": "apps",
+  "owner": "apps/logicx-app",
+  "repository": "CODEXSUN/logicx-app",
+  "baseImage": "node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1",
+  "frappeImage": "frappe/erpnext:v16.60.0@sha256:0a05a56123efb2be47e429d440d07f369ed34c7a2de302e0ae7389d163867b30",
+  "redisImage": "redis:7.4.12-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe",
+  "dependencies": [],
+  "target": {
+    "id": "ubuntu-lan",
+    "project": "logicx-app",
+    "site": "logicx.localhost",
+    "database": "logicx_app",
+    "hostPort": 14445,
+    "containerPort": 4445,
+    "binding": "127.0.0.1",
+    "dataPolicy": "fresh"
+  }
+}

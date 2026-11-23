@@ -1,0 +1,53 @@
+name: Tagged container release
+on:
+  push:
+    tags: ['v-*.*.*']
+permissions:
+  contents: write
+  packages: write
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '26.13.1'
+      - name: Validate and build immutable candidate
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet
+          node .container/release.mjs check
+          python -B -m unittest discover -s tests -p 'test_*.py'
+          node --test tests/stack.test.mjs
+          npm run mcp:check
+          npm run mcp:test
+          NODE_IMAGE=$(node -p "require('./.container/release.json').baseImage")
+          FRAPPE_IMAGE=$(node -p "require('./.container/release.json').frappeImage")
+          VERSION=$(node -p "require('./package.json').version")
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker build --build-arg "NODE_IMAGE=$NODE_IMAGE" --build-arg "FRAPPE_IMAGE=$FRAPPE_IMAGE" --label "org.opencontainers.image.version=$VERSION" --label "org.opencontainers.image.revision=$GITHUB_SHA" --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" -f .container/Dockerfile -t "$IMAGE:$GITHUB_REF_NAME" .
+          docker run --rm --entrypoint /home/frappe/frappe-bench/env/bin/python "$IMAGE:$GITHUB_REF_NAME" -c "import frappe,erpnext,logicx_app; from logicx_app.install import after_install; assert logicx_app.__version__ == '$VERSION'; print(frappe.__version__,erpnext.__version__,logicx_app.__version__)"
+          CANDIDATE=$(docker image inspect "$IMAGE:$GITHUB_REF_NAME" --format '{{.Id}}')
+          node .container/smoke.mjs "$CANDIDATE"
+      - name: Publish image and checked release archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then echo 'Release exists; use a new version'; exit 1; fi
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker push "$IMAGE:$GITHUB_REF_NAME"
+          DIGEST=$(docker image inspect "$IMAGE:$GITHUB_REF_NAME" --format '{{index .RepoDigests 0}}')
+          export RELEASE_IMAGE="$IMAGE" RELEASE_DIGEST="${DIGEST##*@}"
+          docker save "$IMAGE:$GITHUB_REF_NAME" | gzip > image.tar.gz
+          export RELEASE_ARCHIVE_SHA256="$(sha256sum image.tar.gz | cut -d ' ' -f 1)"
+          export RELEASE_IMAGE_ID="$(docker image inspect "$IMAGE:$GITHUB_REF_NAME" --format '{{.Id}}')"
+          node .container/release.mjs manifest
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes-file docs/release-notes.md release-manifest.json image.tar.gz

@@ -1,0 +1,17 @@
+**
+!frontend/
+!frontend/**
+!logicx_app/
+!logicx_app/**
+!pyproject.toml
+!README.md
+!license.txt
+!.container/
+!.container/release_init.py
+!.container/verify_runtime.py
+!.container/entrypoint-release.sh
+**/node_modules
+**/.env*
+**/__pycache__
+logicx_app/public/frontend
+logicx_app/www/logicx_app.html

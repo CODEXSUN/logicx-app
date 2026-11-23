@@ -15,6 +15,15 @@ It includes a product overview, product management, responsive navigation, and F
 
 ## Install
 
+For independent local development with the existing PostgreSQL and Redis services,
+follow [the manual installation guide](.container/setup.md). Use
+`node .container/dev.mjs setup`; all installation, verification and scoped cleanup
+are implemented in the repository scripts. The approved development revisions
+are pinned in `.container/dev-versions.json`.
+
+The earlier unpublished production/Ubuntu prototypes are not used by this
+manual development workflow. No new infrastructure containers are created.
+
 From a Frappe Bench directory:
 
 ```bash

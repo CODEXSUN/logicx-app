@@ -1,185 +1,122 @@
 #!/usr/bin/env python3
-"""Create or upgrade the persistent LogicX Frappe bench."""
+"""Explicit local development setup; shared PostgreSQL and Redis only.
 
+No infrastructure credentials, server provisioning, migration on restart,
+database deletion, Redis server startup or global cache flush occurs here.
+"""
 from __future__ import annotations
 
+import json
 import os
-import pathlib
+from pathlib import Path
+import site as python_site
 import subprocess
-import time
+import sys
+from urllib.parse import quote
+
+BENCH = Path('/home/frappe/frappe-bench')
+APP = Path('/workspace/logicx-app')
 
 
-# The host bind mount defaults to /home/logicx/frappe-bench.  Within the
-# container, Compose exposes its parent directory at this stable path.
-PERSISTENT_DIR = pathlib.Path(os.getenv("FRAPPE_PERSISTENT_DIR", "/home/devops/persistent"))
-BENCH_DIR = PERSISTENT_DIR / "frappe-bench"
-APP_SOURCE = pathlib.Path("/workspace/logicx-app")
-SITE_NAME = os.getenv("SITE_NAME", "logicx.localhost")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
-DB_HOST = os.getenv("DB_HOST", "mariadb")
-DB_PORT = os.getenv("DB_PORT", "3306")
-DB_ROOT_PASSWORD = os.getenv("DB_ROOT_PASSWORD", "logicx_db_root")
-FRAPPE_BRANCH = os.getenv("FRAPPE_BRANCH", "version-16")
-ERPNEXT_BRANCH = os.getenv("ERPNEXT_BRANCH", "version-16")
+def run(*args, cwd=BENCH):
+    print('+ ' + ' '.join(str(arg) for arg in args), flush=True)
+    subprocess.run([str(arg) for arg in args], cwd=cwd, check=True)
 
 
-def run(*command: str, cwd: pathlib.Path | None = None) -> None:
-	print(f"+ {' '.join(command)}", flush=True)
-	subprocess.run(command, cwd=cwd, check=True)
+def common_config(values):
+    if values['database'] != 'logicx_dev' or values['db_user'] != 'logicx_dev':
+        raise ValueError('Unexpected development database identity')
+    if values['redis_cache_db'] != 10 or values['redis_queue_db'] != 11:
+        raise ValueError('Only the reserved development Redis DBs are allowed')
+    user = quote(values['redis_user'], safe='')
+    password = quote(values['redis_password'], safe='')
+    redis = f'redis://{user}:{password}@redis:6379'
+    return {
+        'db_type': 'postgres', 'db_host': 'postgres', 'db_port': 5432,
+        'redis_cache': redis + '/10', 'redis_queue': redis + '/11',
+        'redis_socketio': redis + '/11', 'developer_mode': 1,
+        'serve_default_site': True, 'default_site': values['site'],
+        'webserver_port': 4445, 'socketio_port': 4446,
+        'host_name': 'http://logicx.localhost:4445',
+    }
 
 
-def output(*command: str, cwd: pathlib.Path | None = None) -> str:
-	return subprocess.check_output(command, cwd=cwd, text=True).strip()
+def build_assets():
+    run('npm', 'ci', '--ignore-scripts', '--no-audit', cwd=APP / 'frontend')
+    run('npm', 'run', 'build', cwd=APP / 'frontend')
+    assets = BENCH / 'sites/assets/logicx_app'
+    if not assets.exists() and not assets.is_symlink():
+        assets.symlink_to(APP / 'logicx_app/public', target_is_directory=True)
 
 
-def wait_for_database() -> None:
-	for _ in range(60):
-		result = subprocess.run(
-			[
-				"mariadb-admin",
-				"ping",
-				f"--host={DB_HOST}",
-				f"--port={DB_PORT}",
-				"--user=root",
-				f"--password={DB_ROOT_PASSWORD}",
-				"--silent",
-			],
-			check=False,
-		)
-		if result.returncode == 0:
-			return
-		time.sleep(2)
-	raise RuntimeError("MariaDB did not become ready")
+def main():
+    if sys.argv[1:] == ['assets']:
+        build_assets()
+        return
+    if sys.argv[1:] != ['init']:
+        raise ValueError('Run the explicit init or assets command')
+
+    values = json.loads(Path('/run/logicx/config.json').read_text())
+    config = common_config(values)
+    expected = json.loads(Path('/opt/logicx/dev-versions.json').read_text())
+    if json.loads((BENCH / '.logicx-upstream.json').read_text()) != expected:
+        raise RuntimeError('Bench volume uses other revisions; use the guarded clean reinstall')
+    site = values['site']
+    if (BENCH / 'sites' / site).exists():
+        raise RuntimeError('Existing or partial site: use the guarded clean reinstall')
+
+    target = BENCH / 'apps/logicx_app'
+    if target.exists() or target.is_symlink():
+        raise RuntimeError('Unexpected pre-existing LogicX app link')
+    target.symlink_to(APP, target_is_directory=True)
+    run(BENCH / 'env/bin/python', '-m', 'pip', 'install', '--no-deps', '-e', APP)
+    # This interpreter started before pip wrote the editable package's .pth file.
+    for package_directory in python_site.getsitepackages():
+        python_site.addsitedir(package_directory)
+
+    os.chdir(BENCH / 'sites')
+    os.umask(0o077)
+    Path('apps.txt').write_text('frappe\nerpnext\nlogicx_app\n')
+    Path('common_site_config.json').write_text(json.dumps(config, indent=2))
+    Path('common_site_config.json').chmod(0o600)
+    Path('currentsite.txt').write_text(site + '\n')
+
+    import frappe
+    from frappe.installer import _new_site
+    frappe.init(site, new_site=True)
+    _new_site(
+        db_name=values['database'], site=site, db_type='postgres',
+        db_user=values['db_user'], db_password=values['db_password'],
+        db_host='postgres', db_port=5432, setup_db=False,
+        admin_password=values['admin_password'], install_apps=['erpnext', 'logicx_app'],
+    )
+    frappe.init(site)
+    frappe.connect()
+    from frappe.utils.password import update_password
+    user = frappe.get_doc({
+        'doctype': 'User', 'email': values['admin_email'],
+        'first_name': 'LogicX Developer', 'user_type': 'System User',
+        'send_welcome_email': 0,
+        'roles': [{'role': 'System Manager'}, {'role': 'Item Manager'}],
+    }).insert(ignore_permissions=True)
+    update_password(user.name, values['admin_password'])
+    frappe.db.set_single_value('System Settings', 'enable_scheduler', 1)
+    frappe.db.commit()
+    frappe.destroy()
+
+    build_assets()
+    (BENCH / 'Procfile').write_text(
+        'web: bench --site logicx.localhost serve --host 0.0.0.0 --port 4445\n'
+        'socketio: bench socketio\n'
+        'schedule: bench schedule\n'
+        'worker_short: bench worker --queue short,default\n'
+        'worker_long: bench worker --queue long\n'
+    )
+    (BENCH / '.logicx-ready.json').write_text(json.dumps({
+        'installation': values['installation'], 'site': site, 'versions': expected,
+    }))
+    print('Manual PostgreSQL development installation completed', flush=True)
 
 
-def ensure_bench() -> None:
-	if (BENCH_DIR / "apps/frappe").is_dir():
-		return
-	BENCH_DIR.mkdir(parents=True, exist_ok=True)
-	if any(BENCH_DIR.iterdir()):
-		raise RuntimeError(f"{BENCH_DIR} is not empty but is not a Frappe bench")
-	BENCH_DIR.rmdir()
-	run(
-		"bench",
-		"init",
-		str(BENCH_DIR),
-		"--frappe-branch",
-		FRAPPE_BRANCH,
-	)
-
-
-def ensure_bench_timezone_data() -> None:
-	bench_python = BENCH_DIR / "env/bin/python"
-	check = subprocess.run(
-		[str(bench_python), "-c", "import tzdata"],
-		check=False,
-		stdout=subprocess.DEVNULL,
-		stderr=subprocess.DEVNULL,
-	)
-	if check.returncode == 0:
-		return
-	run(str(bench_python), "-m", "pip", "install", "--no-deps", "tzdata")
-
-
-def ensure_erpnext() -> None:
-	if (BENCH_DIR / "apps/erpnext").is_dir():
-		return
-	run(
-		"bench",
-		"get-app",
-		"erpnext",
-		"https://github.com/frappe/erpnext.git",
-		"--branch",
-		ERPNEXT_BRANCH,
-		cwd=BENCH_DIR,
-	)
-
-
-def link_logicx() -> None:
-	if not (APP_SOURCE / "pyproject.toml").is_file():
-		raise RuntimeError(f"LogicX source is missing at {APP_SOURCE}")
-	target = BENCH_DIR / "apps/logicx_app"
-	if target.is_symlink():
-		target.unlink()
-	elif target.exists():
-		raise RuntimeError(f"Refusing to replace non-symlinked app directory: {target}")
-	target.symlink_to(APP_SOURCE, target_is_directory=True)
-	run(str(BENCH_DIR / "env/bin/python"), "-m", "pip", "install", "--no-deps", "-e", str(APP_SOURCE))
-	apps_file = BENCH_DIR / "sites/apps.txt"
-	apps = [line.strip() for line in apps_file.read_text(encoding="utf-8").splitlines() if line.strip()]
-	if "logicx_app" not in apps:
-		apps_file.write_text("\n".join([*apps, "logicx_app"]) + "\n", encoding="utf-8")
-
-
-def ensure_site() -> None:
-	site_path = BENCH_DIR / "sites" / SITE_NAME
-	if not site_path.is_dir():
-		run(
-			"bench",
-			"new-site",
-			SITE_NAME,
-			"--admin-password",
-			ADMIN_PASSWORD,
-			"--db-host",
-			DB_HOST,
-			"--db-port",
-			DB_PORT,
-			"--mariadb-root-username",
-			"root",
-			"--mariadb-root-password",
-			DB_ROOT_PASSWORD,
-			"--mariadb-user-host-login-scope=%",
-			cwd=BENCH_DIR,
-		)
-	run("bench", "use", SITE_NAME, cwd=BENCH_DIR)
-	run("bench", "set-config", "-g", "serve_default_site", "true", cwd=BENCH_DIR)
-
-
-def installed_apps() -> set[str]:
-	value = output("bench", "--site", SITE_NAME, "list-apps", "--format", "json", cwd=BENCH_DIR)
-	import json
-
-	return set(json.loads(value))
-
-
-def start_bootstrap_redis() -> None:
-	for config_name in ("redis_queue.conf", "redis_cache.conf"):
-		run(
-			"redis-server",
-			str(BENCH_DIR / "config" / config_name),
-			"--daemonize",
-			"yes",
-		)
-
-
-def stop_bootstrap_redis() -> None:
-	for port in (11000, 13000):
-		subprocess.run(["redis-cli", "-p", str(port), "shutdown"], check=False)
-
-
-def install_and_migrate() -> None:
-	start_bootstrap_redis()
-	try:
-		apps = installed_apps()
-		if "erpnext" not in apps:
-			run("bench", "--site", SITE_NAME, "install-app", "erpnext", cwd=BENCH_DIR)
-		if "logicx_app" not in apps:
-			run("bench", "--site", SITE_NAME, "install-app", "logicx_app", cwd=BENCH_DIR)
-		run("bench", "--site", SITE_NAME, "migrate", cwd=BENCH_DIR)
-	finally:
-		stop_bootstrap_redis()
-
-
-def main() -> None:
-	wait_for_database()
-	ensure_bench()
-	ensure_bench_timezone_data()
-	ensure_erpnext()
-	link_logicx()
-	ensure_site()
-	install_and_migrate()
-	print(f"LogicX is ready at http://localhost:8000 (site: {SITE_NAME})", flush=True)
-
-
-if __name__ == "__main__":
-	main()
+if __name__ == '__main__':
+    main()

@@ -22,3 +22,14 @@ Final closure checks: seven Node tests and four Python tests passed; 0.1.6 versi
 Preserved blocker: the unpublished `.container/` deployment/development prototype, `.github/workflows/release.yml`, `tools/github-helper.mjs`, `.gitattributes`, `README.md` integration edits, `docs/release-notes.md`, `docs/work-record.md` and operational test files remain local. An owner must decide whether to retain these as a supported release/development contract, then authorize any required Frappe source/image acquisition and isolated integration/image verification. No prototype is deployed or tagged to force a clean working tree. Platform is excluded; no Platform source, settings, services or worktrees are changed or accessed during this freeze closure.
 
 No extra branches, worktrees or stashes were present at the freeze check. This repository will remain idle after the source closure receipt.
+
+
+## Final source publication closure — 23 November 2026
+
+The human explicitly requested closing the remaining pending source. The earlier prototype hold is superseded for source publication only: the existing operational sources, configuration templates, tests and historical work record are reviewed and included without executing their mutating commands. They remain experimental until image/integration verification passes; no deployment readiness is implied. The release notes state this restriction prominently.
+
+Checks for this closure: syntax of pending Python, JSON, JavaScript and shell files; seven app/operational Node tests; four Python tests; remote-ops MCP syntax checks and four tests; release contract and 0.1.6 consistency; private-key/common live-token pattern review; staged whitespace checks. The previously passed frontend build remains applicable because frontend source has not changed since that build. No dependency versions changed.
+
+Actual deferred runtime prerequisite: Docker reports no local `ghcr.io/codexsun/logicx-app:v-0.1.6` image. A future owner must obtain separate authorization for image acquisition/build and isolated integration verification before release tagging or deployment. This is a runtime/release gate, not a remaining uncommitted-source blocker. No Platform files/settings/services were accessed or changed by executing these checks.
+
+Governance's `future/frappe-codebiz.md` is a separate completed documentation handoff. Its authorship and readiness were confirmed to the Governance owner; it does not belong in this LogicX commit.

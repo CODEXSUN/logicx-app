@@ -1,0 +1,7 @@
+**
+!.container/
+!.container/dev-versions.json
+!.container/build_dev_bench.py
+!.container/init_frappe.py
+!.container/dev_verify.py
+!.container/dev-entrypoint.sh

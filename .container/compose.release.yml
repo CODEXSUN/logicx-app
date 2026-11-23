@@ -1,0 +1,358 @@
+{
+  "name": "logicx-app",
+  "services": {
+    "redis-cache": {
+      "image": "redis:7.4.12-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe",
+      "restart": "unless-stopped",
+      "labels": {
+        "io.codebiz.owner": "apps/logicx-app",
+        "io.codebiz.target": "ubuntu-lan"
+      },
+      "command": [
+        "redis-server",
+        "/usr/local/etc/redis/redis.conf"
+      ],
+      "volumes": [
+        "/run/logicx/private/redis-cache.conf:/usr/local/etc/redis/redis.conf:ro"
+      ],
+      "networks": [
+        "internal"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "REDISCLI_AUTH=$$(sed -n \"s/^requirepass //p\" /usr/local/etc/redis/redis.conf) redis-cli --no-auth-warning ping | grep -qx PONG"
+        ],
+        "interval": "5s",
+        "timeout": "3s",
+        "retries": 20
+      }
+    },
+    "redis-queue": {
+      "image": "redis:7.4.12-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe",
+      "restart": "unless-stopped",
+      "labels": {
+        "io.codebiz.owner": "apps/logicx-app",
+        "io.codebiz.target": "ubuntu-lan"
+      },
+      "command": [
+        "redis-server",
+        "/usr/local/etc/redis/redis.conf"
+      ],
+      "volumes": [
+        "/run/logicx/private/redis-queue.conf:/usr/local/etc/redis/redis.conf:ro",
+        "queue:/data"
+      ],
+      "networks": [
+        "internal"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "REDISCLI_AUTH=$$(sed -n \"s/^requirepass //p\" /usr/local/etc/redis/redis.conf) redis-cli --no-auth-warning ping | grep -qx PONG"
+        ],
+        "interval": "5s",
+        "timeout": "3s",
+        "retries": 20
+      }
+    },
+    "init": {
+      "image": "${LOGICX_IMAGE:?select an approved immutable image}",
+      "restart": "no",
+      "labels": {
+        "io.codebiz.owner": "apps/logicx-app",
+        "io.codebiz.target": "ubuntu-lan"
+      },
+      "volumes": [
+        "sites:/home/frappe/frappe-bench/sites",
+        "logs:/home/frappe/frappe-bench/logs",
+        "/run/logicx/private/logicx-install.json:/run/secrets/logicx-install.json:ro"
+      ],
+      "networks": [
+        "internal",
+        "infra"
+      ],
+      "environment": {
+        "LOGICX_MANAGED_RELEASE": "1"
+      },
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "depends_on": {
+        "redis-cache": {
+          "condition": "service_healthy"
+        },
+        "redis-queue": {
+          "condition": "service_healthy"
+        }
+      },
+      "profiles": [
+        "install"
+      ],
+      "command": [
+        "/home/frappe/frappe-bench/env/bin/python",
+        "/opt/logicx/release_init.py"
+      ]
+    },
+    "backend": {
+      "image": "${LOGICX_IMAGE:?select an approved immutable image}",
+      "restart": "unless-stopped",
+      "labels": {
+        "io.codebiz.owner": "apps/logicx-app",
+        "io.codebiz.target": "ubuntu-lan"
+      },
+      "volumes": [
+        "sites:/home/frappe/frappe-bench/sites",
+        "logs:/home/frappe/frappe-bench/logs"
+      ],
+      "networks": [
+        "internal",
+        "infra"
+      ],
+      "environment": {
+        "LOGICX_MANAGED_RELEASE": "1"
+      },
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "depends_on": {
+        "redis-cache": {
+          "condition": "service_healthy"
+        },
+        "redis-queue": {
+          "condition": "service_healthy"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "/home/frappe/frappe-bench/env/bin/python",
+          "-c",
+          "import urllib.request; r=urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/api/method/ping',headers={'Host':'logicx.localhost'})); assert r.status==200"
+        ],
+        "interval": "15s",
+        "timeout": "5s",
+        "retries": 12,
+        "start_period": "30s"
+      }
+    },
+    "websocket": {
+      "image": "${LOGICX_IMAGE:?select an approved immutable image}",
+      "restart": "unless-stopped",
+      "labels": {
+        "io.codebiz.owner": "apps/logicx-app",
+        "io.codebiz.target": "ubuntu-lan"
+      },
+      "volumes": [
+        "sites:/home/frappe/frappe-bench/sites",
+        "logs:/home/frappe/frappe-bench/logs"
+      ],
+      "networks": [
+        "internal",
+        "infra"
+      ],
+      "environment": {
+        "LOGICX_MANAGED_RELEASE": "1"
+      },
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "depends_on": {
+        "redis-cache": {
+          "condition": "service_healthy"
+        },
+        "redis-queue": {
+          "condition": "service_healthy"
+        }
+      },
+      "command": [
+        "node",
+        "/home/frappe/frappe-bench/apps/frappe/socketio.js"
+      ]
+    },
+    "queue-short": {
+      "image": "${LOGICX_IMAGE:?select an approved immutable image}",
+      "restart": "unless-stopped",
+      "labels": {
+        "io.codebiz.owner": "apps/logicx-app",
+        "io.codebiz.target": "ubuntu-lan"
+      },
+      "volumes": [
+        "sites:/home/frappe/frappe-bench/sites",
+        "logs:/home/frappe/frappe-bench/logs"
+      ],
+      "networks": [
+        "internal",
+        "infra"
+      ],
+      "environment": {
+        "LOGICX_MANAGED_RELEASE": "1"
+      },
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "depends_on": {
+        "redis-cache": {
+          "condition": "service_healthy"
+        },
+        "redis-queue": {
+          "condition": "service_healthy"
+        }
+      },
+      "command": [
+        "bench",
+        "worker",
+        "--queue",
+        "short,default"
+      ]
+    },
+    "queue-long": {
+      "image": "${LOGICX_IMAGE:?select an approved immutable image}",
+      "restart": "unless-stopped",
+      "labels": {
+        "io.codebiz.owner": "apps/logicx-app",
+        "io.codebiz.target": "ubuntu-lan"
+      },
+      "volumes": [
+        "sites:/home/frappe/frappe-bench/sites",
+        "logs:/home/frappe/frappe-bench/logs"
+      ],
+      "networks": [
+        "internal",
+        "infra"
+      ],
+      "environment": {
+        "LOGICX_MANAGED_RELEASE": "1"
+      },
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "depends_on": {
+        "redis-cache": {
+          "condition": "service_healthy"
+        },
+        "redis-queue": {
+          "condition": "service_healthy"
+        }
+      },
+      "command": [
+        "bench",
+        "worker",
+        "--queue",
+        "long"
+      ]
+    },
+    "scheduler": {
+      "image": "${LOGICX_IMAGE:?select an approved immutable image}",
+      "restart": "unless-stopped",
+      "labels": {
+        "io.codebiz.owner": "apps/logicx-app",
+        "io.codebiz.target": "ubuntu-lan"
+      },
+      "volumes": [
+        "sites:/home/frappe/frappe-bench/sites",
+        "logs:/home/frappe/frappe-bench/logs"
+      ],
+      "networks": [
+        "internal",
+        "infra"
+      ],
+      "environment": {
+        "LOGICX_MANAGED_RELEASE": "1"
+      },
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "depends_on": {
+        "redis-cache": {
+          "condition": "service_healthy"
+        },
+        "redis-queue": {
+          "condition": "service_healthy"
+        }
+      },
+      "command": [
+        "bench",
+        "schedule"
+      ]
+    },
+    "frontend": {
+      "image": "${LOGICX_IMAGE:?select an approved immutable image}",
+      "restart": "unless-stopped",
+      "labels": {
+        "io.codebiz.owner": "apps/logicx-app",
+        "io.codebiz.target": "ubuntu-lan"
+      },
+      "volumes": [
+        "sites:/home/frappe/frappe-bench/sites",
+        "logs:/home/frappe/frappe-bench/logs"
+      ],
+      "networks": [
+        "internal"
+      ],
+      "environment": {
+        "BACKEND": "backend:8000",
+        "SOCKETIO": "websocket:9000",
+        "NGINX_LISTEN_PORT": "4445",
+        "FRAPPE_SITE_NAME_HEADER": "logicx.localhost",
+        "CLIENT_MAX_BODY_SIZE": "25m",
+        "PROXY_READ_TIMEOUT": "120"
+      },
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "depends_on": {
+        "redis-cache": {
+          "condition": "service_healthy"
+        },
+        "redis-queue": {
+          "condition": "service_healthy"
+        },
+        "backend": {
+          "condition": "service_healthy"
+        },
+        "websocket": {
+          "condition": "service_started"
+        }
+      },
+      "command": [
+        "nginx-entrypoint.sh"
+      ],
+      "ports": [
+        "127.0.0.1:14445:4445"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "/home/frappe/frappe-bench/env/bin/python",
+          "-c",
+          "import urllib.request; assert urllib.request.urlopen('http://127.0.0.1:4445/api/method/ping').status==200"
+        ],
+        "interval": "15s",
+        "timeout": "5s",
+        "retries": 12,
+        "start_period": "30s"
+      }
+    }
+  },
+  "networks": {
+    "internal": {
+      "name": "logicx-app_internal"
+    },
+    "infra": {
+      "external": true,
+      "name": "codebiz-infra_default"
+    }
+  },
+  "volumes": {
+    "sites": {
+      "name": "logicx-app_sites"
+    },
+    "logs": {
+      "name": "logicx-app_logs"
+    },
+    "queue": {
+      "name": "logicx-app_queue"
+    }
+  }
+}

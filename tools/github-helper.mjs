@@ -1,0 +1,21 @@
+import {execFileSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
+import path from 'node:path';
+const root=path.resolve(import.meta.dirname,'..');
+const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8',stdio:['ignore','pipe','pipe'],windowsHide:true}).trim();
+if(process.argv.length===2){console.log(git(['status','--short'])||'Working tree clean');console.log('Read-only preview; publish an audited index with --release --yes');process.exit(0);}
+if(process.argv.slice(2).join(' ')!=='--release --yes')throw Error('Use --release --yes after auditing the staged release');
+execFileSync(process.execPath,['.container/release.mjs','check'],{cwd:root,stdio:'inherit'});
+const version=JSON.parse(readFileSync(path.join(root,'package.json'))).version,tag='v-'+version;
+if(git(['diff','--name-only'])||git(['ls-files','--others','--exclude-standard'])||!git(['diff','--cached','--name-only']))throw Error('Audit and fully stage only this release');
+git(['diff','--cached','--check']);
+const tree=git(['write-tree']),head=git(['rev-parse','HEAD']);
+if(git(['symbolic-ref','--short','HEAD'])!=='main'||git(['rev-parse','--abbrev-ref','--symbolic-full-name','@{upstream}'])!=='origin/main')throw Error('Expected tracked main branch');
+git(['fetch','--quiet','origin']);
+if(git(['rev-parse','origin/main'])!==head||git(['tag','--list',tag])||git(['ls-remote','--tags','origin','refs/tags/'+tag]))throw Error('Upstream changed or tag exists');
+if(git(['write-tree'])!==tree||git(['rev-parse','HEAD'])!==head)throw Error('Review changed');
+git(['commit','-m','#6 - Immutable Ubuntu Frappe deployment']);
+if(git(['rev-parse','HEAD^{tree}'])!==tree||git(['rev-parse','HEAD^'])!==head)throw Error('Commit hook changed release');
+git(['tag','-a',tag,'-m','LogicX '+version]);
+git(['push','--atomic','origin','HEAD:refs/heads/main','refs/tags/'+tag]);
+console.log(JSON.stringify({tag,commit:git(['rev-parse','HEAD'])}));

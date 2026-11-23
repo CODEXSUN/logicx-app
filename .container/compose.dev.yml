@@ -1,0 +1,38 @@
+name: logicx-dev
+
+services:
+  frappe:
+    image: ${LOGICX_DEV_IMAGE:?Run the manual development build first}
+    container_name: logicx-dev
+    restart: "no"
+    labels:
+      io.codebiz.owner: apps/logicx-app
+      io.codebiz.mode: development
+      io.logicx.installation: ${LOGICX_INSTALLATION:?Managed installation identity required}
+    ports:
+      - "127.0.0.1:4445:4445"
+      - "127.0.0.1:4446:4446"
+    networks:
+      - infrastructure
+    volumes:
+      - bench:/home/frappe/frappe-bench
+      - ..:/workspace/logicx-app
+      - frontend_modules:/workspace/logicx-app/frontend/node_modules
+      - ${LOGICX_DEV_CONFIG:?Private managed configuration required}:/run/logicx/config.json:ro
+
+networks:
+  infrastructure:
+    external: true
+    name: codebiz-infra_default
+
+volumes:
+  bench:
+    name: logicx_dev_bench
+    labels:
+      io.codebiz.owner: apps/logicx-app
+      io.logicx.installation: ${LOGICX_INSTALLATION}
+  frontend_modules:
+    name: logicx_dev_frontend_modules
+    labels:
+      io.codebiz.owner: apps/logicx-app
+      io.logicx.installation: ${LOGICX_INSTALLATION}
